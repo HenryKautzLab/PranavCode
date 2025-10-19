@@ -1,0 +1,11 @@
+image_path,caption,num_faces
+./Flickr8k_Dataset/Images/1000268201_693b08cb0e.jpg,a little girl in a pink dress,0
+./Flickr8k_Dataset/Images/1001773457_577c3a7d70.jpg,two dogs playing on the road,0
+./Flickr8k_Dataset/Images/1002674143_1b742ab4b8.jpg,a child sitting in the grass,0
+./Flickr8k_Dataset/Images/1003163366_44323f5815.jpg,a woman laying on a bench,0
+./Flickr8k_Dataset/Images/1007129816_e794419615.jpg,man wearing a hat,0
+./Flickr8k_Dataset/Images/1007320043_627395c3d8.jpg,a young girl climbing on a rope,1
+./Flickr8k_Dataset/Images/1009434119_febe49276a.jpg,a dog running in a field,0
+./Flickr8k_Dataset/Images/1012212859_01547e3f17.jpg,a dog playing with a ball,0
+./Flickr8k_Dataset/Images/1015118661_980735411b.jpg,a young boy is walking down the street,1
+./Flickr8k_Dataset/Images/1015584366_dfcec3c85a.jpg,a dog is sitting on a log in the grass,0
