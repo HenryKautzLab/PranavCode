@@ -1,0 +1,12 @@
+image_filename,caption,faces_detected,smiles_detected,jealousy_score,social_indicators,luxury_indicators,activity_indicators
+1000268201_693b08cb0e.jpg,a little girl in a pink dress,0,0,0.13,0,0,0
+1001773457_577c3a7d70.jpg,two dogs playing on the road,0,0,0.075,0,0,1
+1002674143_1b742ab4b8.jpg,a child sitting in the grass,0,0,0.145,0,0,0
+1003163366_44323f5815.jpg,a woman laying on a bench,0,0,0.172,0,0,0
+1007129816_e794419615.jpg,man wearing a hat,0,0,0.098,0,0,0
+1007320043_627395c3d8.jpg,a young girl climbing on a rope,1,0,0.316,0,0,1
+1009434119_febe49276a.jpg,a dog running in a field,0,0,0.092,0,0,1
+1012212859_01547e3f17.jpg,a dog playing with a ball,0,0,0.386,0,0,1
+1015118661_980735411b.jpg,a young boy is walking down the street,1,0,0.27,0,0,0
+1015584366_dfcec3c85a.jpg,a dog is sitting on a log in the grass,0,0,0.136,0,0,0
+SUMMARY,Average Score: 0.182 | Highest Score: 0.386 (Image 8),2,0,0.18200000000000002,0,0,4
