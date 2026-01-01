@@ -1,2 +1,4 @@
-.DS_Store
-.env
+Flickr8k_Dataset/
+*.jpg
+*.jpeg
+*.png
