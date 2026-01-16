@@ -1,4 +1,18 @@
+# Environment variables with API keys
+.env
+
+# Dataset
 Flickr8k_Dataset/
+
+# Images
 *.jpg
 *.jpeg
 *.png
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
