@@ -3,3 +3,7 @@ This branch is the latest one yet, here I have used my existing LLaVA code but t
 Whisper proved especially useful in one video about a news report, where audio is very important. 
 
 EasyOCR gives better context in case the video has subittles or other meaningful text on the screen.
+
+
+03/09:
+Used all-MiniLM-L6-v2 to measure similarity between 1 model and 3 model outputs.
