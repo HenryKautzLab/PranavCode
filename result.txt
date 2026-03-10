@@ -1,0 +1,17 @@
+📊 EMBEDDING SIMILARITY (higher = more agreement)
+--------------------------------------------------
+  content_summary                0.707
+  emotional_tone                 0.624
+  persuasion_techniques          0.641
+  target_audience                0.620
+  credibility_assessment         0.667
+  misinformation_risk            0.670
+  behavioral_impact              0.699
+  key_message                    0.652
+
+  OVERALL AVERAGE                0.660
+
+📊 LABEL AGREEMENT (exact match)
+--------------------------------------------------
+  content_category               100.0%  (3/3 videos)
+  risk_level                     100.0%  (3/3 videos)
