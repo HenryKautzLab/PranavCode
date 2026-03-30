@@ -1,7 +1,23 @@
-For this main branch I have tried using Gemini, BLIP, and LLaVA-NeXT (LLaVA) for analyzing images and giving feedback of how it would make viewers feel.
+## Model Benchmarking — Gemini vs. BLIP vs. LLaVA-NeXT
 
-I have found that Gemini is great and easy to use, however I often ran into the free-tier limit, thus I tried BLIP and LLaVA.
+This branch documents the model selection process for image analysis, benchmarking three vision-language models against the core requirement: generating interpretive, emotionally aware captions useful for misinformation and persuasion analysis.
 
-BLIP worked well considering it was light, however it generated very vage captions that wouldn't be usesful for interpretation. That is when I stumbled across LLaVA, a great free multimodel just like BLIP but much better at giving interpretations of what is going on in the image. Please see the results folder and the difference is huge!
+### Models Evaluated
 
-I found that there are very good free resources out there, you just have to do a little bit of digging.
+| Model | Findings |
+|---|---|
+| Gemini | Strong interpretive output but hit free-tier rate limits — not viable at scale |
+| BLIP | Lightweight and fast but captions were too generic for meaningful interpretation |
+| LLaVA-NeXT | Best balance of interpretive depth and local deployment viability — selected as primary model |
+
+### Key Finding
+
+Caption specificity was the critical differentiator. BLIP's outputs described what was in an image; LLaVA-NeXT's outputs interpreted what it meant and how it would make viewers feel — which is exactly what this research requires.
+
+Side-by-side output comparisons are available in the `/results` folder. The difference in output quality is significant.
+
+### Takeaway
+
+High-quality free models exist but require evaluation to find. LLaVA-NeXT proved that open-source alternatives can match or exceed proprietary models for domain-specific tasks when selected through evidence-based benchmarking rather than assumption.
+
+This branch feeds directly into the multimodal pipeline in subsequent branches.
