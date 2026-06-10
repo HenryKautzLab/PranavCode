@@ -1,0 +1,24 @@
+# ── Core ML / Vision ──────────────────────────────────────────────────────────
+torch                        # install CUDA build separately: https://pytorch.org/get-started/locally/
+torchvision
+transformers
+accelerate                   # required by transformers for device_map + quantization
+bitsandbytes                 # required for BitsAndBytesConfig (load_in_4bit=True)
+sentencepiece                # required by LLaVA tokenizer
+
+# ── Image / Video ─────────────────────────────────────────────────────────────
+Pillow
+opencv-python
+easyocr
+openai-whisper               # also pulls in ffmpeg-python, triton
+
+# ── NLP / Embeddings ──────────────────────────────────────────────────────────
+sentence-transformers
+scikit-learn
+numpy
+
+# ── Google Gemini ─────────────────────────────────────────────────────────────
+google-genai
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+python-dotenv
