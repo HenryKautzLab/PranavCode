@@ -1,1 +1,11 @@
 *.txt
+/data/*
+*.mp4
+*.mp3
+*.jpg
+*.jpeg
+*.png
+*.avi
+*.mkv
+.DS_Store
+__pycache__/
