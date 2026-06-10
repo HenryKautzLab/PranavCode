@@ -23,6 +23,7 @@ import argparse
 import json
 import os
 import subprocess
+import time
 from pathlib import Path
 
 import cv2
@@ -258,24 +259,34 @@ def main():
             print("  Already compared — skipping (delete modality_comparison.json to re-run)")
             continue
 
+        timings: dict = {}
+
         # ── Extract base inputs ──
         print("  Extracting frames...")
+        t0 = time.perf_counter()
         frames = extract_frames(vp)
+        timings["frame_extraction_s"] = round(time.perf_counter() - t0, 3)
         if not frames:
             print("  ERROR: no frames extracted")
             continue
 
         print("  Transcribing audio...")
+        t0 = time.perf_counter()
         audio_data = transcribe(vp, wm)
+        timings["whisper_s"] = round(time.perf_counter() - t0, 3)
         transcript = audio_data["transcript"]
 
         print("  Running OCR...")
+        t0 = time.perf_counter()
         ocr_text = extract_ocr(frames, ocr_reader)
+        timings["ocr_s"] = round(time.perf_counter() - t0, 3)
 
-        print(f"  Frames={len(frames)}  Audio='{transcript[:60]}...'  OCR={ocr_text[:3]}")
+        print(f"  Frames={len(frames)}  whisper={timings['whisper_s']:.1f}s"
+              f"  ocr={timings['ocr_s']:.1f}s  Audio='{transcript[:60]}...'  OCR={ocr_text[:3]}")
 
         # ── Run each modality ──
         modalities = {}
+        pipeline_timings: dict = {}
         configs = [
             ("visual_only",      False, False),
             ("visual_ocr",       False, True),
@@ -284,9 +295,12 @@ def main():
         ]
         for mod_key, use_audio, use_ocr in configs:
             print(f"\n  [{mod_key}]")
+            t0 = time.perf_counter()
             modalities[mod_key] = run_llava_modality(
                 frames, transcript, ocr_text, processor, llava, device,
                 use_audio=use_audio, use_ocr=use_ocr)
+            pipeline_timings[mod_key + "_s"] = round(time.perf_counter() - t0, 3)
+            print(f"    done in {pipeline_timings[mod_key + '_s']:.1f}s")
 
         # raw text-only outputs (no LLM)
         modalities["audio_only"] = {
@@ -300,19 +314,29 @@ def main():
             "note":         "Raw EasyOCR output — no LLM involved",
         }
 
+        timings["pipelines"] = pipeline_timings
+        timings["total_s"] = round(
+            timings["frame_extraction_s"]
+            + timings["whisper_s"]
+            + timings["ocr_s"]
+            + sum(pipeline_timings.values()),
+            3,
+        )
+
         # ── Compute similarity scores ──
         print("\n  Computing embedding similarity vs full pipeline...")
         scores = compare_to_reference(modalities, "visual_audio_ocr", embed_model)
 
         # ── Save ──
         comparison_record = {
-            "video_id":  vid_id,
-            "video_path": str(vp),
-            "modalities": modalities,
+            "video_id":           vid_id,
+            "video_path":         str(vp),
+            "modalities":         modalities,
             "whisper_transcript": transcript,
             "whisper_language":   audio_data["language"],
             "ocr_text":           ocr_text,
             "num_frames":         len(frames),
+            "pipeline_timings":   timings,
         }
         with open(comp_path, "w") as f:
             json.dump(comparison_record, f, indent=2, ensure_ascii=False)
@@ -322,6 +346,17 @@ def main():
             json.dump(scores, f, indent=2)
 
         # ── Print summary ──
+        print(f"\n  Pipeline timings:")
+        print(f"  {'Stage':<25} {'Time (s)':>10}")
+        print(f"  {'-'*37}")
+        print(f"  {'frame_extraction':<25} {timings['frame_extraction_s']:>10.2f}")
+        print(f"  {'whisper':<25} {timings['whisper_s']:>10.2f}")
+        print(f"  {'ocr':<25} {timings['ocr_s']:>10.2f}")
+        for mod_key, *_ in configs:
+            print(f"  {mod_key:<25} {pipeline_timings[mod_key + '_s']:>10.2f}")
+        print(f"  {'-'*37}")
+        print(f"  {'TOTAL':<25} {timings['total_s']:>10.2f}")
+
         print(f"\n  Similarity vs full pipeline (visual_audio_ocr):")
         print(f"  {'Modality':<25} {'Avg sim':>8}  {'Label agreement'}")
         print(f"  {'-'*60}")

@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 import subprocess
+import time
 import cv2
 import whisper
 import easyocr
@@ -158,33 +159,52 @@ def get_segment_near(segments: list, t: float, window: float = 5.0) -> str:
 
 def analyze_video(video_path: Path, audio_data: dict,
                   ocr_reader, processor, model, device: str) -> dict:
+    timings: dict = {}
+
+    # ── Frame extraction ──────────────────────────────────────────────────────
     print(f"   Extracting {NUM_FRAMES} frames...")
+    t0 = time.perf_counter()
     frames = extract_frames(video_path)
+    timings["frame_extraction_s"] = round(time.perf_counter() - t0, 3)
     if not frames:
         raise RuntimeError("No frames extracted — corrupt or unreadable video")
 
+    # ── EasyOCR ───────────────────────────────────────────────────────────────
     print(f"   Running EasyOCR on {len(frames)} frames...")
-    ocr_text   = extract_ocr(frames, ocr_reader)
+    t0 = time.perf_counter()
+    ocr_text = extract_ocr(frames, ocr_reader)
+    timings["ocr_s"] = round(time.perf_counter() - t0, 3)
+
     transcript = audio_data.get("transcript", "")
     segments   = audio_data.get("segments", [])
     duration   = get_duration(video_path)
+
+    # Whisper time was recorded during the pre-pass and stored in audio_data.
+    if "whisper_s" in audio_data:
+        timings["whisper_s"] = audio_data["whisper_s"]
 
     if ocr_text:
         print(f"   OCR: {' | '.join(ocr_text[:5])}{'...' if len(ocr_text)>5 else ''}")
     if transcript:
         print(f"   Audio: {transcript[:80]}...")
 
-    # ── Main questions (on middle frame) ──
     mid_frame = frames[len(frames) // 2]
+
+    # ── Main questions (on middle frame, full pipeline: visual + OCR + audio) ─
     print(f"   LLaVA: answering {len(QUESTIONS)} questions...")
-    analysis = {}
+    t0 = time.perf_counter()
+    analysis: dict = {}
     for i, (key, q) in enumerate(QUESTIONS.items(), 1):
         print(f"     [{i}/{len(QUESTIONS)}] {key}")
         analysis[key] = ask_llava(mid_frame, q, processor, model, device,
                                   transcript=transcript, ocr_text=ocr_text)
+    timings["llava_main_questions_s"] = round(time.perf_counter() - t0, 3)
+    timings["llava_per_question_avg_s"] = round(
+        timings["llava_main_questions_s"] / len(QUESTIONS), 3)
 
-    # ── Temporal progression (all frames) ──
+    # ── Temporal progression (all frames, full pipeline) ─────────────────────
     print(f"   LLaVA: temporal progression across {len(frames)} frames...")
+    t0 = time.perf_counter()
     temporal = []
     for idx, frame in enumerate(frames):
         frac = idx / max(len(frames) - 1, 1)
@@ -195,7 +215,17 @@ def analyze_video(video_path: Path, audio_data: dict,
                          transcript=seg or transcript, ocr_text=ocr_text)
         temporal.append({"frame_index": idx, "position_pct": round(frac * 100),
                          "description": desc, "audio_segment": seg})
+    timings["llava_temporal_s"] = round(time.perf_counter() - t0, 3)
     analysis["temporal_progression"] = temporal
+
+    timings["total_s"] = round(
+        timings.get("whisper_s", 0)
+        + timings["frame_extraction_s"]
+        + timings["ocr_s"]
+        + timings["llava_main_questions_s"]
+        + timings["llava_temporal_s"],
+        3,
+    )
 
     analysis.update({
         "whisper_transcript":   transcript,
@@ -204,6 +234,7 @@ def analyze_video(video_path: Path, audio_data: dict,
         "ocr_onscreen_text":    ocr_text,
         "num_frames_analyzed":  len(frames),
         "analysis_method":      f"LLaVA-NeXT ({MODEL_ID}) + Whisper-{WHISPER_SIZE} + EasyOCR",
+        "pipeline_timings":     timings,
     })
     return analysis
 
@@ -255,15 +286,18 @@ def main():
             print(f"  [cached] {vid_id}")
             with open(cache) as f:
                 transcripts[vid_id] = json.load(f)
+            # whisper_s absent for cached entries — that's fine
         else:
             print(f"  Transcribing {vid_id}...")
+            t0_whisper = time.perf_counter()
             data = transcribe(vp, whisper_model)
+            data["whisper_s"] = round(time.perf_counter() - t0_whisper, 3)
             with open(cache, "w") as f:
                 json.dump(data, f, indent=2)
             transcripts[vid_id] = data
             lang = data["language"]
             prev = data["transcript"][:80]
-            print(f"    lang={lang}  preview: {prev}...")
+            print(f"    lang={lang}  whisper={data['whisper_s']:.1f}s  preview: {prev}...")
     del whisper_model
     torch.cuda.empty_cache()
     print("\nWhisper unloaded.\n")
