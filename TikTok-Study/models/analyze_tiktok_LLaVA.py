@@ -56,6 +56,8 @@ def parse_args():
                    help="'nested' = {id}/video.mp4 (default), 'flat' = *.mp4")
     p.add_argument("--limit",      type=int, default=None,
                    help="Max videos to process (useful for quick tests)")
+    p.add_argument("--video-id",   default=None,
+                   help="Process a single video by ID (nested: {id}/video.mp4, flat: {id}.mp4)")
     return p.parse_args()
 
 
@@ -241,8 +243,20 @@ def analyze_video(video_path: Path, audio_data: dict,
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def collect_videos(data_dir: Path, layout: str) -> list[tuple[str, Path]]:
+def collect_videos(data_dir: Path, layout: str, video_id: str = None) -> list[tuple[str, Path]]:
     """Returns list of (video_id, video_path)."""
+    if video_id:
+        if layout == "nested":
+            for name in ("video.mp4", "video.mp3"):
+                vp = data_dir / video_id / name
+                if vp.exists():
+                    return [(video_id, vp)]
+        else:
+            for ext in (".mp4", ".mp3"):
+                vp = data_dir / (video_id + ext)
+                if vp.exists():
+                    return [(video_id, vp)]
+        return []
     videos = []
     if layout == "nested":
         for d in sorted(data_dir.iterdir()):
@@ -269,7 +283,7 @@ def main():
     print(f"Data  : {data_dir}  [{args.layout}]")
     print(f"Output: {output_dir}\n")
 
-    videos = collect_videos(data_dir, args.layout)
+    videos = collect_videos(data_dir, args.layout, args.video_id)
     if args.limit:
         videos = videos[:args.limit]
     print(f"{len(videos)} video(s) found\n")
