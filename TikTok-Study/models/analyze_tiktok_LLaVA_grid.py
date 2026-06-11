@@ -195,8 +195,27 @@ def ask_llava(image: Image.Image, question: str, processor, model, device: str,
     return decoded.split("ASSISTANT:")[-1].strip() if "ASSISTANT:" in decoded else decoded.strip()
 
 
-def get_segment_near(segments: list, t: float, window: float = 5.0) -> str:
-    return " ".join(s["text"] for s in segments if abs(s["start"] - t) < window).strip()
+def parse_combined_response(raw: str) -> dict:
+    """Parse a single LLaVA response that answers all QUESTIONS in labeled format."""
+    results = {}
+    keys = list(QUESTIONS.keys())
+    for i, key in enumerate(keys):
+        # Find the label in the response, grab text until the next label (or end)
+        start_marker = key + ":"
+        start = raw.find(start_marker)
+        if start == -1:
+            results[key] = ""
+            continue
+        start += len(start_marker)
+        # Next label starts at the next key's position
+        end = len(raw)
+        for next_key in keys[i + 1:]:
+            pos = raw.find(next_key + ":", start)
+            if pos != -1:
+                end = pos
+                break
+        results[key] = raw[start:end].strip()
+    return results
 
 
 # ── Per-video analysis ────────────────────────────────────────────────────────
@@ -231,52 +250,52 @@ def analyze_video(video_path: Path, audio_data: dict,
     if transcript:
         print(f"   Audio: {transcript[:80]}...")
 
-    mid_frame = frames[len(frames) // 2]
-
-    # ── Main questions (middle frame, full pipeline: visual + OCR + audio) ────
-    print(f"   LLaVA: answering {len(QUESTIONS)} questions...")
-    t0 = time.perf_counter()
-    analysis: dict = {}
-    for i, (key, q) in enumerate(QUESTIONS.items(), 1):
-        print(f"     [{i}/{len(QUESTIONS)}] {key}")
-        analysis[key] = ask_llava(mid_frame, q, processor, model, device,
-                                  transcript=f'SPOKEN AUDIO (Whisper): "{transcript}"' if transcript else "",
-                                  ocr_text=ocr_text)
-    timings["llava_main_questions_s"] = round(time.perf_counter() - t0, 3)
-    timings["llava_per_question_avg_s"] = round(
-        timings["llava_main_questions_s"] / len(QUESTIONS), 3)
-
-    # ── Temporal progression: grid image → single LLaVA call ─────────────────
+    # ── Build grid + audio timeline ───────────────────────────────────────────
     print(f"   Building {len(frames)}-frame grid ({GRID_COLS} cols × "
           f"{math.ceil(len(frames)/GRID_COLS)} rows, {GRID_THUMB}px cells)...")
     grid_image     = build_frame_grid(frames, FRAME_POSITIONS)
     audio_timeline = build_audio_timeline(segments, FRAME_POSITIONS, duration)
 
-    grid_prompt = (
+    # ── Single LLaVA call: all questions on the grid ──────────────────────────
+    questions_block = "\n".join(f"{key}: {q}" for key, q in QUESTIONS.items())
+    combined_prompt = (
         f"This image is a {GRID_COLS}-column grid of {len(frames)} video frames "
-        f"arranged left-to-right, top-to-bottom, each labeled with its position "
-        f"(0% = start, {int(FRAME_POSITIONS[-1]*100)}% = near end). "
-        "For EACH labeled frame in order, briefly describe what is shown."
+        f"arranged left-to-right, top-to-bottom, labeled 0% (start) to "
+        f"{int(FRAME_POSITIONS[-1]*100)}% (near end).\n\n"
+        "Answer ALL of the following questions about this video. "
+        "Start each answer on a new line with its exact label and a colon.\n\n"
+        + questions_block
     )
 
-    print("   LLaVA: temporal progression (1 grid call)...")
+    context_parts = []
+    if audio_timeline:
+        context_parts.append(audio_timeline)
+    if ocr_text:
+        context_parts.append(f'ON-SCREEN TEXT (OCR): "{" | ".join(ocr_text)}"')
+    if context_parts:
+        combined_prompt = "\n\n".join(context_parts) + "\n\nUsing what you see AND the above:\n\n" + combined_prompt
+
+    print(f"   LLaVA: 1 call for all {len(QUESTIONS)} questions on grid image...")
+    conversation = [{"role": "user", "content": [
+        {"type": "image"},
+        {"type": "text", "text": combined_prompt},
+    ]}]
+    prompt  = processor.apply_chat_template(conversation, add_generation_prompt=True)
+    inputs  = processor(images=grid_image, text=prompt, return_tensors="pt").to(device)
     t0 = time.perf_counter()
-    temporal_description = ask_llava(
-        grid_image, grid_prompt, processor, model, device,
-        transcript=audio_timeline,
-        ocr_text=ocr_text,
-    )
-    timings["llava_temporal_s"] = round(time.perf_counter() - t0, 3)
+    output  = model.generate(**inputs, max_new_tokens=2000, do_sample=False)
+    timings["llava_s"] = round(time.perf_counter() - t0, 3)
+    raw_response = processor.decode(output[0], skip_special_tokens=True)
+    raw_response = raw_response.split("ASSISTANT:")[-1].strip() if "ASSISTANT:" in raw_response else raw_response.strip()
 
-    analysis["temporal_progression"] = temporal_description
-    analysis["temporal_audio_timeline"] = audio_timeline
+    analysis = parse_combined_response(raw_response)
+    analysis["llava_raw_response"] = raw_response
 
     timings["total_s"] = round(
         timings.get("whisper_s", 0)
         + timings["frame_extraction_s"]
         + timings["ocr_s"]
-        + timings["llava_main_questions_s"]
-        + timings["llava_temporal_s"],
+        + timings["llava_s"],
         3,
     )
 
@@ -285,9 +304,10 @@ def analyze_video(video_path: Path, audio_data: dict,
         "whisper_segments":    segments,
         "detected_language":   audio_data.get("language", "unknown"),
         "ocr_onscreen_text":   ocr_text,
+        "audio_timeline":      audio_timeline,
         "num_frames_analyzed": len(frames),
         "analysis_method":     (f"LLaVA-NeXT ({MODEL_ID}) + Whisper-{WHISPER_SIZE} + EasyOCR "
-                                f"(grid temporal: {len(frames)} frames → 1 call)"),
+                                f"(grid: {len(frames)} frames, 1 LLaVA call)"),
         "pipeline_timings":    timings,
     })
     return analysis
@@ -404,9 +424,7 @@ def main():
             t = analysis["pipeline_timings"]
             print(f"  Saved → {out_file}")
             print(f"  Timings: whisper={t.get('whisper_s','—')}s  ocr={t['ocr_s']}s"
-                  f"  llava_q={t['llava_main_questions_s']}s"
-                  f"  llava_temporal={t['llava_temporal_s']}s"
-                  f"  total={t['total_s']}s")
+                  f"  llava={t['llava_s']}s  total={t['total_s']}s")
         except Exception as e:
             import traceback
             print(f"  ERROR: {e}")
