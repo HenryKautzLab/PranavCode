@@ -150,6 +150,7 @@ def load_model():
         load_in_4bit=True,
         bnb_4bit_compute_dtype=torch.bfloat16,
         bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_storage=torch.bfloat16,  # makes weight.dtype → bfloat16, not uint8
     )
     processor = AutoProcessor.from_pretrained(MODEL_ID)
     model = AutoModelForCausalLM.from_pretrained(
@@ -190,11 +191,6 @@ def run_inference(content_parts: list, prompt_text: str, processor, model) -> st
         return_tensors="pt",
         add_generation_prompt=True,
     ).to(model.device)
-
-    # pixel_values come out as uint8; LayerNorm requires float — cast explicitly
-    # (with 4-bit quant, weight.dtype resolves to uint8 so .to(weight_dtype) is a no-op)
-    if "pixel_values" in inputs and inputs["pixel_values"] is not None:
-        inputs["pixel_values"] = inputs["pixel_values"].to(torch.bfloat16)
 
     with torch.inference_mode():
         out = model.generate(**inputs, max_new_tokens=2000, do_sample=False)
