@@ -47,8 +47,11 @@ FRAME_POSITIONS = [i / (NUM_FRAMES - 1) * 0.95 for i in range(NUM_FRAMES)]
 AUDIO_SR        = 16_000   # Gemma 4 audio encoder expects 16 kHz mono
 
 QUESTIONS = {
+    "transcript": "Transcribe all spoken words, dialogue, narration, or lyrics in the audio exactly as heard. If there is no speech or audio, write 'No speech detected'.",
     "content_summary":        "Describe in detail what is happening in this video. What are the main visual elements, people, objects, and actions?",
-    "emotional_tone":         "What emotions does this content evoke? Describe the mood and emotional impact on viewers.",
+    "emotional_tone":         "What emotions does this content evoke? Determine "
+    "Negative emotion: aggression, anger, disgust, dominant personality, hate, kill, negative emotion, nervousness, pain, rage, sadness, suffering, swearing terms, terrorism, violence. Or"
+    "Positive emotion: joy, love, optimist, politeness, positive emotion.",
     # "persuasion_techniques":  "What persuasive or rhetorical techniques are being used? Consider visual appeal, emotional manipulation, social proof, authority, or urgency tactics.",
     "target_audience":        "Who is the intended audience? What age group, demographic, or interest group would this appeal to?",
     # "credibility_assessment": "Does this content appear credible and trustworthy? Are there any red flags, misleading elements, or signs of manipulation?",
@@ -117,8 +120,15 @@ def extract_audio(video_path: Path) -> "np.ndarray | None":
 def load_metadata(meta_csv: "Path | None") -> dict[str, dict]:
     if not meta_csv or not meta_csv.exists():
         return {}
+    result = {}
     with open(meta_csv, newline="", encoding="utf-8") as f:
-        return {row["video_id"]: row for row in csv.DictReader(f)}
+        for row in csv.DictReader(f):
+            # key by row_id (folder name e.g. "001") AND by actual video_id
+            if row.get("row_id"):
+                result[row["row_id"]] = row
+            if row.get("video_id"):
+                result[row["video_id"]] = row
+    return result
 
 
 def build_metadata_text(meta: dict) -> str:
