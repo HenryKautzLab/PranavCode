@@ -48,10 +48,10 @@ AUDIO_SR        = 16_000   # Gemma 4 audio encoder expects 16 kHz mono
 
 QUESTIONS = {
     "transcript": "Transcribe all spoken words, dialogue, narration, or lyrics in the audio exactly as heard. If there is no speech or audio, write 'No speech detected'.",
-    "content_summary":        "Describe in detail what is happening in this video. What are the main visual elements, people, objects, and actions?",
-    "emotional_tone":         "What emotions does this content evoke? Determine "
-    "Negative emotion: aggression, anger, disgust, dominant personality, hate, kill, negative emotion, nervousness, pain, rage, sadness, suffering, swearing terms, terrorism, violence. Or"
-    "Positive emotion: joy, love, optimist, politeness, positive emotion.",
+    "video_description":        "Describe each segment of the video. What is happening in this video? What are the main visual elements, people, objects, and actions?",
+    "emotional_tone":         "What emotions does this content evoke? Determine one or more emotions from either positive or negative axis."
+    "Negative: aggression, anger, disgust, dominant personality, hate, kill, negative emotion, nervousness, pain, rage, sadness, suffering, swearing terms, terrorism, violence. Or"
+    "Positive: joy, love, optimist, politeness, positive emotion.",
     # "persuasion_techniques":  "What persuasive or rhetorical techniques are being used? Consider visual appeal, emotional manipulation, social proof, authority, or urgency tactics.",
     "target_audience":        "Who is the intended audience? What age group, demographic, or interest group would this appeal to?",
     # "credibility_assessment": "Does this content appear credible and trustworthy? Are there any red flags, misleading elements, or signs of manipulation?",
