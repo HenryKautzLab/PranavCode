@@ -191,6 +191,11 @@ def run_inference(content_parts: list, prompt_text: str, processor, model) -> st
         add_generation_prompt=True,
     ).to(model.device)
 
+    # pixel_values come out as uint8; LayerNorm requires float — cast explicitly
+    # (with 4-bit quant, weight.dtype resolves to uint8 so .to(weight_dtype) is a no-op)
+    if "pixel_values" in inputs and inputs["pixel_values"] is not None:
+        inputs["pixel_values"] = inputs["pixel_values"].to(torch.bfloat16)
+
     with torch.inference_mode():
         out = model.generate(**inputs, max_new_tokens=2000, do_sample=False)
 
