@@ -47,9 +47,9 @@ FRAME_POSITIONS = [i / (NUM_FRAMES - 1) * 0.95 for i in range(NUM_FRAMES)]
 AUDIO_SR        = 16_000   # Gemma 4 audio encoder expects 16 kHz mono
 
 QUESTIONS = {
-    "transcript": "Transcribe all spoken words, dialogue, narration, or lyrics in the audio exactly as heard. If there is no speech or audio, write 'No speech detected'.",
-    "video_description":        "Describe each segment of the video. What is happening in this video? What are the main visual elements, people, objects, and actions?",
-    "emotional_tone":         "What emotions does this content evoke? Determine one or more emotions from either positive or negative axis."
+    "transcript": "Transcribe spoken words, dialogue, narration, or lyrics in the audio if detected, otherwise write 'Not detected'.",
+    "video_description":        "Summarize the video and describe unique scenes sequentially. What are the main visual elements, people, objects, and actions?",
+    "emotional_tone":         "What emotions does this content evoke? Just write one or more emotions from either positive or negative axis."
     "Negative: aggression, anger, disgust, dominant personality, hate, kill, negative emotion, nervousness, pain, rage, sadness, suffering, swearing terms, terrorism, violence. Or"
     "Positive: joy, love, optimist, politeness, positive emotion.",
     # "persuasion_techniques":  "What persuasive or rhetorical techniques are being used? Consider visual appeal, emotional manipulation, social proof, authority, or urgency tactics.",
@@ -57,12 +57,13 @@ QUESTIONS = {
     # "credibility_assessment": "Does this content appear credible and trustworthy? Are there any red flags, misleading elements, or signs of manipulation?",
     # "misinformation_risk":    "Could this content spread misinformation or false claims? What are the potential risks to viewers?",
     # "behavioral_impact":      "How might this video influence viewer behavior, beliefs, or actions? What specific behaviors might it encourage?",
-    "content_category":       "Category: entertainment, education, health, political, product promotion, or other? Choose one.",
+    "content_category":       "Category in one word: entertainment, education, health, political, body image, fitness, game, social, cooking,"
+    " product promotion, or other? Choose one.",
     # "key_message":            "What is the main message or takeaway viewers are supposed to get from this video?",
     # "risk_level":             "On a scale of low/medium/high, what is the potential risk to viewers? Explain briefly.",
-    "audio_visual_alignment": "Does the spoken audio and on-screen text align with what is shown visually? Note any mismatches.",
+    "audio_visual_alignment": "Does the spoken audio and on-screen text align with what is shown visually? Write only Yes or No. Note any mismatches if No.",
     "location": "Where is this video being filmed? Describe the location and setting (i.e., outside, inside, gym, home, office, etc.).",
-    "gender": "What is the gender of the person(s) in the video? If multiple, describe each.",
+    "gender": "What is the gender of the person(s) in the video in one word? If multiple, describe each.",
     "action": "What is the main action or activity taking place in the video?",
     "gesture": "What gestures are being made by the person(s) in the video? Describe the hand movements and body language.",
     "body image": "Does this video show a positive or negative body image? Describe the portrayal of the human body.",

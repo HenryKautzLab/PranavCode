@@ -151,12 +151,12 @@ def find_videos_with_mp4(video_dir: Path) -> list[tuple[str, Path]]:
 # ── Copy / symlink videos ─────────────────────────────────────────────────────
 
 def stage_video(src: Path, row_id: int, sampled_dir: Path, symlink: bool) -> Path:
-    """Copy (or symlink) src into sampled_dir/{row_id:03d}/video.mp4."""
+    """Copy (or symlink) src into sampled_dir/{row_id:03d}/video.mp4. Always overwrites."""
     dest_dir = sampled_dir / f"{row_id:03d}"
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / "video.mp4"
-    if dest.exists() or dest.is_symlink():
-        return dest
+    if dest.is_symlink() or dest.exists():
+        dest.unlink()
     if symlink:
         dest.symlink_to(src.resolve())
     else:
