@@ -266,7 +266,7 @@ def analyze_video(video_path: Path, mode: str, meta: dict,
         audio = extract_audio(video_path)
         timings["audio_extraction_s"] = round(time.perf_counter() - t0, 3)
         if audio is not None:
-            content_parts.append({"type": "audio", "audio": audio})
+            content_parts.append({"type": "audio", "audio": audio, "sampling_rate": AUDIO_SR})
             used_audio = True
             print(f"   Audio extracted in {timings['audio_extraction_s']:.2f}s  "
                   f"({len(audio)/AUDIO_SR:.1f}s of audio)")
